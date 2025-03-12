@@ -1,6 +1,6 @@
 package course.concurrency.m2_async.cf;
 
-import course.concurrency.m2_async.loadTest.ReportServiceExecutors;
+import course.concurrency.m2_async.loadTest.ReportServiceVirtual;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
@@ -10,13 +10,13 @@ import java.util.concurrent.TimeUnit;
 
 public class ReportServiceTests {
 
-    private ReportServiceExecutors reportService = new ReportServiceExecutors();
+    //    private ReportServiceExecutors reportService = new ReportServiceExecutors();
 //    private ReportServiceCF reportService = new ReportServiceCF();
-//    private ReportServiceVirtual reportService = new ReportServiceVirtual();
+    private ReportServiceVirtual reportService = new ReportServiceVirtual();
 
     @Test
     public void testMultipleTasks() throws InterruptedException {
-        int poolSize = Runtime.getRuntime().availableProcessors()*3;
+        int poolSize = Runtime.getRuntime().availableProcessors() * 3;
         int iterations = 5;
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -26,7 +26,8 @@ public class ReportServiceTests {
             executor.submit(() -> {
                 try {
                     latch.await();
-                } catch (InterruptedException ignored) {}
+                } catch (InterruptedException ignored) {
+                }
                 for (int it = 0; it < iterations; it++) {
                     reportService.getReport();
                 }
