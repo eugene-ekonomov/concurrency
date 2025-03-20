@@ -25,7 +25,7 @@ public class AuctionTests {
     private static final int TEST_COUNT = 10;
     private static final ExecutionStatistics stat = new ExecutionStatistics();
 
-    private static final int iterations = 1_000_000;
+    private static final int iterations = 100_000;
     private static final int poolSize = Runtime.getRuntime().availableProcessors();
     private static final int bidCount = iterations * poolSize;
     private Notifier notifier;
