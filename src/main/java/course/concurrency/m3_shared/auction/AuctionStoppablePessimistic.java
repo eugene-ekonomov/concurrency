@@ -8,15 +8,30 @@ public class AuctionStoppablePessimistic implements AuctionStoppable {
         this.notifier = notifier;
     }
 
-    private Bid latestBid;
+    private volatile Bid latestBid;
+    private volatile boolean stopped;
+
+    private Object lock = new Object();
 
     public boolean propose(Bid bid) {
-        if (bid.getPrice() > latestBid.getPrice()) {
-            notifier.sendOutdatedMessage(latestBid);
-            latestBid = bid;
-            return true;
+        if (stopped) {
+            return false;
         }
-        return false;
+        synchronized (lock) {
+            try {
+                if (latestBid == null) {
+                    latestBid = bid;
+                    return true;
+                } else if (bid.getPrice() > latestBid.getPrice()) {
+                    notifier.sendOutdatedMessage(latestBid);
+                    latestBid = bid;
+                    return true;
+                }
+                return false;
+            } finally {
+                lock.notifyAll();
+            }
+        }
     }
 
     public Bid getLatestBid() {
@@ -24,6 +39,9 @@ public class AuctionStoppablePessimistic implements AuctionStoppable {
     }
 
     public Bid stopAuction() {
-        return latestBid;
+        synchronized (lock) {
+            stopped = true;
+            return latestBid;
+        }
     }
 }

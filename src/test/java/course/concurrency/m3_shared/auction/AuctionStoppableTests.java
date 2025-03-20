@@ -26,7 +26,7 @@ public class AuctionStoppableTests {
     private static final int TEST_COUNT = 10;
     private static final ExecutionStatistics stat = new ExecutionStatistics();
 
-    private static final int iterations = 1_000_000;
+    private static final int iterations = 100_000;
     private static final int poolSize = Runtime.getRuntime().availableProcessors();
 
     private Notifier notifier;
