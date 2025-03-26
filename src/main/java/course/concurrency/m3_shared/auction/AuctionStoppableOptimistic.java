@@ -4,13 +4,13 @@ import java.util.concurrent.atomic.AtomicMarkableReference;
 
 public class AuctionStoppableOptimistic implements AuctionStoppable {
 
-    private Notifier notifier;
+    private final Notifier notifier;
 
     public AuctionStoppableOptimistic(Notifier notifier) {
         this.notifier = notifier;
     }
 
-    private AtomicMarkableReference<Bid> latestBid = new AtomicMarkableReference<>(null, false);
+    private final AtomicMarkableReference<Bid> latestBid = new AtomicMarkableReference<>(null, false);
 
     public boolean propose(Bid bid) {
         while (true) {
@@ -37,7 +37,10 @@ public class AuctionStoppableOptimistic implements AuctionStoppable {
     }
 
     public Bid stopAuction() {
-        latestBid.attemptMark(latestBid.getReference(), true);
-        return latestBid.getReference();
+        Bid latest;
+        do {
+            latest = latestBid.getReference();
+        } while(!latestBid.attemptMark(latest, true));
+        return latest;
     }
 }
