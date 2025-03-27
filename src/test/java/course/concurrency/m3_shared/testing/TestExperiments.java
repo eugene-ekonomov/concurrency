@@ -2,6 +2,11 @@ package course.concurrency.m3_shared.testing;
 
 import org.junit.jupiter.api.RepeatedTest;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExperiments {
@@ -19,16 +24,27 @@ public class TestExperiments {
         }
     }
 
-    @RepeatedTest(100)
-    public void counterShouldFail() {
-        int iterations = 5;
-
+    @RepeatedTest(10)
+    public void counterShouldFail() throws InterruptedException {
+        int iterations = 1000000;
+        int threads = 2;
         Counter counter = new Counter();
 
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        CountDownLatch latch = new CountDownLatch(threads);
         for (int i = 0; i < iterations; i++) {
-            counter.increment();
+            executor.submit(() -> {
+                latch.countDown();
+                try {
+                    latch.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                counter.increment();
+            });
         }
-
+        executor.awaitTermination(500, TimeUnit.MILLISECONDS);
+        executor.shutdown();
         assertEquals(iterations, counter.get());
     }
 }
