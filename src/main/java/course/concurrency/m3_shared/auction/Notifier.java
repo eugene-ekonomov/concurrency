@@ -22,5 +22,6 @@ public class Notifier {
     }
 
     public void shutdown() {
+        pool.shutdown();
     }
 }
