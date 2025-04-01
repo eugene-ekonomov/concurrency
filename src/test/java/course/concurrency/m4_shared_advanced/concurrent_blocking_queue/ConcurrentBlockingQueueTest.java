@@ -2,6 +2,7 @@ package course.concurrency.m4_shared_advanced.concurrent_blocking_queue;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -15,12 +16,12 @@ class ConcurrentBlockingQueueTest {
         queue.enqueue(1);
         queue.enqueue(2);
         queue.enqueue(3);
-        queue.enqueue(4);
-        queue.enqueue(5);
         assertEquals(1, queue.dequeue());
         assertEquals(2, queue.dequeue());
         assertEquals(3, queue.dequeue());
-        assertEquals(0, queue.getSize());
+        queue.enqueue(4);
+        queue.enqueue(5);
+        assertEquals(2, queue.getSize());
     }
 
     @Test
@@ -30,13 +31,13 @@ class ConcurrentBlockingQueueTest {
         var queue = new ConcurrentBlockingQueue<Integer>(maxSize);
         try (var executor = Executors.newFixedThreadPool(threadsCount);
              var executor2 = Executors.newFixedThreadPool(threadsCount)) {
-            for (int i = 0; i < maxSize + 1000; i++) {
+            for (int i = 0; i < maxSize + 10; i++) {
                 int finalI = i;
                 executor.submit(() -> queue.enqueue(finalI));
             }
 
             executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
+            executor.awaitTermination(1, TimeUnit.SECONDS);
             assertEquals(maxSize, queue.getSize());
 
             for (int i = 0; i < maxSize - 1; i++) {
@@ -49,11 +50,11 @@ class ConcurrentBlockingQueueTest {
                 });
             }
             executor2.shutdown();
-            executor2.awaitTermination(10, TimeUnit.SECONDS);
+            executor2.awaitTermination(2, TimeUnit.SECONDS);
         }
-        assertEquals(1, queue.getSize());
+        assertEquals(11, queue.getSize());
         queue.dequeue();
-        assertEquals(0, queue.getSize());
+        assertEquals(10, queue.getSize());
     }
 
     @Test
@@ -71,7 +72,7 @@ class ConcurrentBlockingQueueTest {
             });
             assertEquals(0, queue.getSize());
             for (int i = 1; i <= maxSize; i++) {
-                int finalI = i;
+                var finalI = i;
                 executor.submit(() -> queue.enqueue(finalI));
             }
             executor.shutdown();
@@ -84,12 +85,14 @@ class ConcurrentBlockingQueueTest {
     void simultaneouslyTest() throws InterruptedException {
         var maxSize = 1000000;
         var queue = new ConcurrentBlockingQueue<Integer>(maxSize);
+        var latch = new CountDownLatch(1);
         try (var executor = Executors.newFixedThreadPool(8);
              var executor2 = Executors.newFixedThreadPool(8)
         ) {
             for (int i = 0; i < maxSize; i++) {
                 executor.submit(() -> {
                     try {
+                        latch.await();
                         queue.dequeue();
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
@@ -98,8 +101,16 @@ class ConcurrentBlockingQueueTest {
             }
             for (int i = 0; i < maxSize; i++) {
                 int finalI = i;
-                executor2.submit(() -> queue.enqueue(finalI));
+                executor2.submit(() -> {
+                    try {
+                        latch.await();
+                        queue.enqueue(finalI);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             }
+            latch.countDown();
             Thread.sleep(2000);
             executor.shutdown();
             executor2.shutdown();

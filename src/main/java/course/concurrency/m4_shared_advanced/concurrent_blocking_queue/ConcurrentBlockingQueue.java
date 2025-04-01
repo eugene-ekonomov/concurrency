@@ -14,14 +14,18 @@ public class ConcurrentBlockingQueue<T> {
     }
 
     public void enqueue(T value) {
-        if (maxSize > queue.size()) {
-            synchronized (queue) {
-                if (maxSize > queue.size()) {
-                    queue.add(value);
+        synchronized (queue) {
+            while (maxSize == queue.size()) {
+                try {
+                    queue.wait();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-                queue.notifyAll();
             }
+            queue.add(value);
+            queue.notifyAll();
         }
+
     }
 
     public T dequeue() throws InterruptedException {
@@ -30,7 +34,9 @@ public class ConcurrentBlockingQueue<T> {
                 if (queue.isEmpty()) {
                     queue.wait();
                 } else {
-                    return queue.removeFirst();
+                    var value = queue.removeFirst();
+                    queue.notifyAll();
+                    return value;
                 }
             }
         }
@@ -38,6 +44,7 @@ public class ConcurrentBlockingQueue<T> {
 
     public int getSize() {
         synchronized (queue) {
+            queue.notifyAll();
             return queue.size();
         }
     }
